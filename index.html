@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>特价机票发现平台 — FlightSnap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.07);
+    --accent: #00e5c3;
+    --accent2: #ff6b35;
+    --accent3: #6c63ff;
+    --text: #f0f0f8;
+    --muted: #888899;
+    --deal-red: #ff4757;
+    --deal-green: #2ed573;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* BG decoration */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,229,195,0.06) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -200px; left: -200px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(108,99,255,0.07) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 2rem; align-items: center; }
+  .nav-links a {
+    color: var(--muted); text-decoration: none;
+    font-size: 14px; transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-btn {
+    background: var(--accent); color: #0a0a0f;
+    border: none; padding: 8px 20px; border-radius: 8px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif;
+    transition: opacity 0.2s;
+  }
+  .nav-btn:hover { opacity: 0.85; }
+
+  /* HERO */
+  .hero {
+    position: relative; z-index: 1;
+    padding: 80px 2rem 60px;
+    text-align: center;
+    max-width: 900px; margin: 0 auto;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(0,229,195,0.1); border: 1px solid rgba(0,229,195,0.25);
+    color: var(--accent); padding: 6px 16px; border-radius: 100px;
+    font-size: 13px; font-weight: 500; margin-bottom: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .badge-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.4rem, 6vw, 4.5rem);
+    font-weight: 800; line-height: 1.1;
+    letter-spacing: -2px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .hero h1 em { color: var(--accent); font-style: normal; }
+  .hero p {
+    color: var(--muted); font-size: 18px; margin: 20px auto 0;
+    max-width: 560px; line-height: 1.7;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  /* SEARCH BOX */
+  .search-box {
+    position: relative; z-index: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px; padding: 28px;
+    max-width: 860px; margin: 40px auto 0;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .search-tabs {
+    display: flex; gap: 4px; margin-bottom: 24px;
+  }
+  .stab {
+    padding: 8px 20px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; border: none; background: transparent;
+    color: var(--muted); font-family: 'Noto Sans SC', sans-serif;
+    transition: all 0.2s;
+  }
+  .stab.active {
+    background: var(--surface2); color: var(--text); font-weight: 500;
+  }
+  .search-row {
+    display: grid; grid-template-columns: 1fr auto 1fr 160px 160px auto;
+    gap: 12px; align-items: end;
+  }
+  .sf { display: flex; flex-direction: column; gap: 8px; }
+  .sf label { font-size: 12px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  .sf input, .sf select {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px;
+    color: var(--text); font-size: 15px;
+    font-family: 'Noto Sans SC', sans-serif;
+    outline: none; width: 100%;
+    transition: border-color 0.2s;
+  }
+  .sf input:focus, .sf select:focus {
+    border-color: rgba(0,229,195,0.4);
+  }
+  .sf select option { background: var(--surface2); }
+  .swap-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 50%; width: 40px; height: 40px;
+    color: var(--muted); cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; margin-bottom: 2px;
+  }
+  .swap-btn:hover { color: var(--accent); border-color: var(--accent); transform: rotate(180deg); }
+  .search-btn {
+    background: var(--accent); color: #0a0a0f;
+    border: none; border-radius: 10px; padding: 13px 28px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif;
+    display: flex; align-items: center; gap: 8px;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .search-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,229,195,0.25); }
+
+  /* STATS BAR */
+  .stats-bar {
+    position: relative; z-index: 1;
+    display: flex; justify-content: center; gap: 48px;
+    padding: 32px 2rem;
+    max-width: 860px; margin: 0 auto;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-item { text-align: center; }
+  .stat-num {
+    font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* SECTION */
+  .section {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 0 auto;
+    padding: 60px 2rem;
+  }
+  .section-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 32px;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px; font-weight: 700; letter-spacing: -0.5px;
+  }
+  .section-title span { color: var(--accent); }
+  .see-all {
+    color: var(--accent); font-size: 14px; text-decoration: none;
+    display: flex; align-items: center; gap: 4px;
+    transition: gap 0.2s;
+  }
+  .see-all:hover { gap: 8px; }
+
+  /* DEAL CARDS */
+  .deals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .deal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: pointer; position: relative;
+  }
+  .deal-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0,229,195,0.25);
+  }
+  .card-img {
+    height: 160px; position: relative; overflow: hidden;
+    background: #1a1a26;
+  }
+  .card-img img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .card-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(10,10,15,0.8) 0%, transparent 60%);
+  }
+  .card-badge {
+    position: absolute; top: 12px; left: 12px;
+    background: var(--deal-red); color: white;
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 12px; font-weight: 700;
+  }
+  .card-badge.hot {
+    background: var(--accent2);
+  }
+  .card-airline {
+    position: absolute; bottom: 12px; left: 12px;
+    font-size: 13px; color: rgba(255,255,255,0.9); font-weight: 500;
+  }
+  .card-body { padding: 16px; }
+  .card-route {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 18px; font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    margin-bottom: 8px;
+  }
+  .card-route .arr { width: 24px; height: 1px; background: var(--muted); position: relative; }
+  .card-route .arr::after {
+    content: ''; position: absolute; right: 0; top: -3px;
+    width: 0; height: 0;
+    border-left: 5px solid var(--muted);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  .card-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 12px;
+  }
+  .card-date { font-size: 13px; color: var(--muted); }
+  .card-price { display: flex; flex-direction: column; align-items: flex-end; }
+  .price-orig { font-size: 12px; color: var(--muted); text-decoration: line-through; }
+  .price-now {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 700; color: var(--deal-red);
+  }
+  .price-tag {
+    display: inline-block;
+    background: rgba(46,213,115,0.1); color: var(--deal-green);
+    font-size: 11px; font-weight: 700; padding: 2px 8px;
+    border-radius: 4px; margin-top: 4px;
+  }
+
+  /* PRICE CALENDAR */
+  .calendar-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px;
+  }
+  .cal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .cal-month {
+    font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+  }
+  .cal-nav { display: flex; gap: 8px; }
+  .cal-nav button {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; width: 36px; height: 36px;
+    color: var(--text); cursor: pointer; font-size: 16px;
+    transition: border-color 0.2s;
+  }
+  .cal-nav button:hover { border-color: var(--accent); color: var(--accent); }
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .cal-day-label {
+    text-align: center; font-size: 12px; color: var(--muted);
+    padding: 8px 0; font-weight: 500;
+  }
+  .cal-day {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 6px; text-align: center;
+    cursor: pointer; transition: all 0.15s; min-height: 64px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px;
+  }
+  .cal-day:hover { border-color: rgba(0,229,195,0.3); }
+  .cal-day.empty { background: transparent; border-color: transparent; cursor: default; }
+  .cal-day.cheap { border-color: rgba(46,213,115,0.4); background: rgba(46,213,115,0.05); }
+  .cal-day.mid { border-color: rgba(255,107,53,0.3); background: rgba(255,107,53,0.05); }
+  .cal-day.exp { border-color: rgba(255,71,87,0.3); background: rgba(255,71,87,0.05); }
+  .cal-day.today { border-color: var(--accent); }
+  .cal-day.selected { background: rgba(0,229,195,0.15); border-color: var(--accent); }
+  .day-num { font-size: 14px; font-weight: 500; }
+  .day-price { font-size: 11px; font-weight: 700; }
+  .cheap .day-price { color: var(--deal-green); }
+  .mid .day-price { color: var(--accent2); }
+  .exp .day-price { color: var(--deal-red); }
+  .cal-legend {
+    display: flex; gap: 20px; margin-top: 16px;
+    font-size: 12px; color: var(--muted);
+  }
+  .leg-item { display: flex; align-items: center; gap: 6px; }
+  .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* TREND CHART */
+  .trend-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px;
+  }
+  .trend-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px;
+  }
+  .trend-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+  .trend-route-sel {
+    display: flex; gap: 8px;
+  }
+  .route-chip {
+    padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    font-family: 'Noto Sans SC', sans-serif; transition: all 0.2s;
+  }
+  .route-chip.active {
+    background: rgba(0,229,195,0.1); color: var(--accent);
+    border-color: rgba(0,229,195,0.3);
+  }
+  #trendCanvas { width: 100%; height: 200px; }
+
+  /* DESTINATION CARDS */
+  .dest-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .dest-card {
+    border-radius: 14px; overflow: hidden; cursor: pointer;
+    position: relative; height: 160px;
+    background-size: cover; background-position: center;
+    transition: transform 0.2s;
+  }
+  .dest-card:hover { transform: scale(1.03); }
+  .dest-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 60%);
+    display: flex; flex-direction: column;
+    justify-content: flex-end; padding: 16px;
+  }
+  .dest-city {
+    font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+  }
+  .dest-price { font-size: 13px; color: var(--accent); font-weight: 500; margin-top: 2px; }
+  .dest-tag {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 700; color: var(--deal-green);
+  }
+
+  /* ALERT BANNER */
+  .alert-section {
+    background: linear-gradient(135deg, rgba(0,229,195,0.08) 0%, rgba(108,99,255,0.08) 100%);
+    border: 1px solid rgba(0,229,195,0.2);
+    border-radius: 20px; padding: 40px;
+    text-align: center; max-width: 700px; margin: 0 auto;
+  }
+  .alert-icon { font-size: 40px; margin-bottom: 16px; }
+  .alert-section h2 {
+    font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .alert-section p { color: var(--muted); margin-bottom: 24px; line-height: 1.7; }
+  .alert-input-row {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  }
+  .alert-input {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 20px;
+    color: var(--text); font-size: 15px; width: 280px;
+    font-family: 'Noto Sans SC', sans-serif; outline: none;
+    transition: border-color 0.2s;
+  }
+  .alert-input:focus { border-color: rgba(0,229,195,0.4); }
+  .alert-btn {
+    background: var(--accent); color: #0a0a0f;
+    border: none; border-radius: 10px; padding: 12px 28px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif;
+    transition: opacity 0.2s;
+  }
+  .alert-btn:hover { opacity: 0.85; }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px;
+  }
+  .filter-chip {
+    padding: 8px 16px; border-radius: 100px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); font-size: 13px; cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif; transition: all 0.2s;
+  }
+  .filter-chip:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .filter-chip.active {
+    background: rgba(0,229,195,0.1); color: var(--accent);
+    border-color: rgba(0,229,195,0.3);
+  }
+
+  /* FOOTER */
+  footer {
+    position: relative; z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 40px 2rem; text-align: center;
+    color: var(--muted); font-size: 14px;
+  }
+  footer .footer-logo {
+    font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+    margin-bottom: 12px;
+  }
+  footer .footer-logo span { color: var(--accent); }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 30px; right: 30px; z-index: 999;
+    background: var(--surface); border: 1px solid rgba(0,229,195,0.3);
+    border-radius: 12px; padding: 16px 24px;
+    display: flex; align-items: center; gap: 12px;
+    transform: translateY(100px); opacity: 0;
+    transition: all 0.3s ease; pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { color: var(--accent); font-size: 20px; }
+  .toast-text { font-size: 14px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .search-row { grid-template-columns: 1fr 1fr; }
+    .swap-btn { display: none; }
+    .search-btn { grid-column: 1 / -1; justify-content: center; }
+    .nav-links { display: none; }
+    .stats-bar { gap: 24px; }
+    .stat-num { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Flight<span>Snap</span></div>
+  <div class="nav-links">
+    <a href="#deals">特价机票</a>
+    <a href="#calendar">价格日历</a>
+    <a href="#trend">趋势分析</a>
+    <a href="#alert">降价提醒</a>
+  </div>
+  <button class="nav-btn">免费注册</button>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">
+    <div class="badge-dot"></div>
+    实时监控 · 全网比价
+  </div>
+  <h1>抢先发现<br><em>最低价机票</em></h1>
+  <p>整合各大 OTA 平台与航司特价，AI 智能分析价格趋势，助你永远买在最低点。</p>
+</div>
+
+<!-- SEARCH -->
+<div class="search-box" style="max-width:860px;margin:0 auto 0;padding:28px;position:relative;z-index:1;">
+  <div class="search-tabs">
+    <button class="stab active" onclick="setTab(this)">单程</button>
+    <button class="stab" onclick="setTab(this)">往返</button>
+    <button class="stab" onclick="setTab(this)">多城市</button>
+  </div>
+  <div class="search-row">
+    <div class="sf">
+      <label>出发城市</label>
+      <input type="text" placeholder="北京 BJS" id="from" value="北京 BJS">
+    </div>
+    <div style="padding-bottom:2px;">
+      <button class="swap-btn" onclick="swapCities()">⇄</button>
+    </div>
+    <div class="sf">
+      <label>目的城市</label>
+      <input type="text" placeholder="上海 SHA" id="to" value="">
+    </div>
+    <div class="sf">
+      <label>出发日期</label>
+      <input type="date" id="depDate">
+    </div>
+    <div class="sf">
+      <label>舱位</label>
+      <select>
+        <option>经济舱</option>
+        <option>商务舱</option>
+        <option>头等舱</option>
+      </select>
+    </div>
+    <button class="search-btn" onclick="doSearch()">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 1a5.5 5.5 0 1 0 3.89 9.45l3.33 3.33.7-.7-3.33-3.33A5.5 5.5 0 0 0 6.5 1zm-4.5 5.5a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0z"/></svg>
+      搜索特价
+    </button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-num" id="sn1">2,847</div>
+    <div class="stat-label">今日特价航班</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" id="sn2">¥289</div>
+    <div class="stat-label">今日最低价</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" id="sn3">18</div>
+    <div class="stat-label">监控航线数</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" id="sn4">94%</div>
+    <div class="stat-label">用户省钱成功率</div>
+  </div>
+</div>
+
+<!-- HOT DEALS -->
+<div class="section" id="deals">
+  <div class="section-header">
+    <div class="section-title">🔥 今日<span>热门特价</span></div>
+    <a href="#" class="see-all">查看全部 →</a>
+  </div>
+  <div class="filter-bar">
+    <button class="filter-chip active" onclick="filterDeals(this,'all')">全部</button>
+    <button class="filter-chip" onclick="filterDeals(this,'intl')">国际航线</button>
+    <button class="filter-chip" onclick="filterDeals(this,'dom')">国内航线</button>
+    <button class="filter-chip" onclick="filterDeals(this,'flash')">限时闪购</button>
+    <button class="filter-chip" onclick="filterDeals(this,'low')">超低价 &lt;300</button>
+  </div>
+  <div class="deals-grid" id="dealsGrid"></div>
+</div>
+
+<!-- PRICE CALENDAR -->
+<div class="section" id="calendar">
+  <div class="section-header">
+    <div class="section-title">📅 价格<span>日历</span></div>
+    <span style="font-size:13px;color:var(--muted);">北京 → 上海</span>
+  </div>
+  <div class="calendar-wrapper">
+    <div class="cal-header">
+      <div class="cal-month" id="calMonth">2025年5月</div>
+      <div class="cal-nav">
+        <button onclick="changeMonth(-1)">‹</button>
+        <button onclick="changeMonth(1)">›</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--deal-green)"></div>低价 &lt;350</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--accent2)"></div>适中 350-600</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--deal-red)"></div>较贵 &gt;600</div>
+    </div>
+  </div>
+</div>
+
+<!-- TREND -->
+<div class="section" id="trend">
+  <div class="section-header">
+    <div class="section-title">📈 价格<span>趋势</span></div>
+  </div>
+  <div class="trend-wrapper">
+    <div class="trend-header">
+      <div class="trend-title">近30天价格走势</div>
+      <div class="trend-route-sel">
+        <button class="route-chip active" onclick="setRoute(this,'BJS-SHA')">北京→上海</button>
+        <button class="route-chip" onclick="setRoute(this,'BJS-CAN')">北京→广州</button>
+        <button class="route-chip" onclick="setRoute(this,'SHA-CTU')">上海→成都</button>
+      </div>
+    </div>
+    <canvas id="trendCanvas" height="200"></canvas>
+  </div>
+</div>
+
+<!-- DESTINATIONS -->
+<div class="section" id="destinations">
+  <div class="section-header">
+    <div class="section-title">✈️ 热门<span>目的地</span></div>
+    <a href="#" class="see-all">更多目的地 →</a>
+  </div>
+  <div class="dest-grid" id="destGrid"></div>
+</div>
+
+<!-- ALERT -->
+<div class="section" id="alert">
+  <div class="alert-section">
+    <div class="alert-icon">🔔</div>
+    <h2>设置降价提醒</h2>
+    <p>输入你关注的航线，当价格低于预期时，我们第一时间通知你。不错过任何一次特价机会。</p>
+    <div class="alert-input-row">
+      <input class="alert-input" type="email" placeholder="输入你的邮箱地址">
+      <button class="alert-btn" onclick="setAlert()">立即订阅</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">Flight<span>Snap</span></div>
+  <p>整合全网特价机票 · AI 智能比价 · 每天为用户节省更多</p>
+  <p style="margin-top:8px;font-size:12px;">© 2025 FlightSnap · 数据来源：各大航司及OTA平台</p>
+</footer>
+
+<div class="toast" id="toast">
+  <div class="toast-icon">✓</div>
+  <div class="toast-text" id="toastText"></div>
+</div>
+
+<script>
+// --- DATA ---
+const deals = [
+  { from:'北京','to':'三亚', orig:1280, now:399, date:'05/15-05/20', airline:'海南航空', type:'dom', tag:'限时闪购', badge:'hot',
+    bg:'linear-gradient(135deg,#006994 0%,#00b4d8 40%,#90e0ef 100%)', icon:'🏖️', desc:'亚龙湾 · 热带海滩' },
+  { from:'上海','to':'曼谷', orig:2800, now:689, date:'06/01-06/07', airline:'泰国航空', type:'intl', tag:'机票特卖', badge:'',
+    bg:'linear-gradient(135deg,#c17b2a 0%,#e8a045 40%,#f4d03f 100%)', icon:'🛕', desc:'玉佛寺 · 大皇宫' },
+  { from:'广州','to':'东京', orig:3200, now:899, date:'05/25-06/01', airline:'全日空', type:'intl', tag:'限时闪购', badge:'hot',
+    bg:'linear-gradient(135deg,#c0392b 0%,#e74c3c 40%,#f1948a 100%)', icon:'⛩️', desc:'浅草寺 · 新宿' },
+  { from:'北京','to':'上海', orig:680, now:189, date:'05/18-05/18', airline:'东方航空', type:'dom', tag:'超低价', badge:'',
+    bg:'linear-gradient(135deg,#1a1a2e 0%,#16213e 40%,#0f3460 100%)', icon:'🌃', desc:'外滩 · 东方明珠' },
+  { from:'成都','to':'新加坡', orig:2600, now:799, date:'06/10-06/15', airline:'新加坡航空', type:'intl', tag:'提前购', badge:'',
+    bg:'linear-gradient(135deg,#1b4332 0%,#2d6a4f 40%,#52b788 100%)', icon:'🌳', desc:'滨海湾花园 · 鱼尾狮' },
+  { from:'深圳','to':'巴厘岛', orig:3500, now:1099, date:'06/05-06/12', airline:'印尼鹰航', type:'intl', tag:'限时闪购', badge:'hot',
+    bg:'linear-gradient(135deg,#2c7744 0%,#48b865 40%,#a8e063 100%)', icon:'🌺', desc:'乌布 · 库塔海滩' },
+];
+
+const destinations = [
+  { city:'曼谷', price:'¥680起', tag:'-45%',
+    bg:'linear-gradient(135deg,#c17b2a 0%,#e8a045 40%,#f4d03f 100%)', icon:'🛕' },
+  { city:'东京', price:'¥899起', tag:'-38%',
+    bg:'linear-gradient(135deg,#c0392b 0%,#e74c3c 40%,#f1948a 100%)', icon:'⛩️' },
+  { city:'三亚', price:'¥399起', tag:'-68%',
+    bg:'linear-gradient(135deg,#006994 0%,#00b4d8 40%,#90e0ef 100%)', icon:'🏖️' },
+  { city:'新加坡', price:'¥799起', tag:'-52%',
+    bg:'linear-gradient(135deg,#1b4332 0%,#2d6a4f 40%,#52b788 100%)', icon:'🌳' },
+  { city:'上海', price:'¥189起', tag:'-72%',
+    bg:'linear-gradient(135deg,#1a1a2e 0%,#16213e 40%,#0f3460 100%)', icon:'🌃' },
+];
+
+// Render deals
+function renderDeals(filter) {
+  const grid = document.getElementById('dealsGrid');
+  const filtered = filter === 'all' ? deals :
+    filter === 'intl' ? deals.filter(d=>d.type==='intl') :
+    filter === 'dom' ? deals.filter(d=>d.type==='dom') :
+    filter === 'flash' ? deals.filter(d=>d.tag==='限时闪购') :
+    deals.filter(d=>d.now<300);
+  const disc = d => Math.round((1-d.now/d.orig)*100);
+  grid.innerHTML = filtered.map(d => `
+    <div class="deal-card" onclick="showToast('正在跳转至购票页面...')">
+      <div class="card-img" style="background:${d.bg};display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;">
+        <div style="font-size:48px;line-height:1;">${d.icon}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:500;letter-spacing:0.5px;">${d.desc}</div>
+        <div class="card-overlay" style="background:linear-gradient(to top,rgba(0,0,0,0.5) 0%,transparent 60%);"></div>
+        <div class="card-badge ${d.badge}">${d.tag}</div>
+        <div class="card-airline">${d.airline}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-route">
+          <span>${d.from}</span>
+          <div class="arr"></div>
+          <span>${d.to}</span>
+        </div>
+        <div class="card-meta">
+          <div class="card-date">📅 ${d.date}</div>
+          <div class="card-price">
+            <div class="price-orig">原价 ¥${d.orig}</div>
+            <div class="price-now">¥${d.now}</div>
+            <div class="price-tag">省 ${disc(d)}%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+renderDeals('all');
+
+// Render destinations
+(function(){
+  const g = document.getElementById('destGrid');
+  g.innerHTML = destinations.map(d=>`
+    <div class="dest-card" style="background:${d.bg};" onclick="showToast('正在加载${d.city}特价机票...')">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:44px;line-height:1;">${d.icon}</div>
+      <div class="dest-tag">${d.tag}</div>
+      <div class="dest-overlay">
+        <div class="dest-city">${d.city}</div>
+        <div class="dest-price">${d.price}</div>
+      </div>
+    </div>
+  `).join('');
+})();
+
+// Calendar
+let calYear = 2025, calMonth = 4;
+const prices = [null,320,560,420,800,299,null,450,380,610,345,null,780,500,289,430,null,650,370,490,310,null,820,410,360,580,null,299,450,680,310];
+function renderCal() {
+  const names = ['一','二','三','四','五','六','日'];
+  const monthNames = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  document.getElementById('calMonth').textContent = `${calYear}年${monthNames[calMonth]}`;
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date();
+  let html = names.map(n=>`<div class="cal-day-label">${n}</div>`).join('');
+  const start = firstDay === 0 ? 6 : firstDay - 1;
+  for(let i=0;i<start;i++) html+=`<div class="cal-day empty"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const p = prices[d] || Math.floor(Math.random()*600+250);
+    const cls = p<350?'cheap':p<600?'mid':'exp';
+    const isToday = today.getFullYear()===calYear&&today.getMonth()===calMonth&&today.getDate()===d;
+    html+=`<div class="cal-day ${cls} ${isToday?'today':''}" onclick="selectDay(this,${d},${p})">
+      <div class="day-num">${d}</div>
+      <div class="day-price">¥${p}</div>
+    </div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
+}
+function changeMonth(dir){
+  calMonth += dir;
+  if(calMonth>11){calMonth=0;calYear++;}
+  if(calMonth<0){calMonth=11;calYear--;}
+  renderCal();
+}
+function selectDay(el,d,p){
+  document.querySelectorAll('.cal-day').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  showToast(`已选 ${calMonth+1}月${d}日 · 价格 ¥${p}`);
+}
+renderCal();
+
+// Trend chart
+const trendData = {
+  'BJS-SHA': [480,450,390,320,280,350,420,380,300,260,290,350,410,380,320,280,250,310,380,350,290,260,240,300,360,340,280,250,230,210],
+  'BJS-CAN': [680,640,590,520,480,560,620,580,500,460,490,550,610,580,520,480,450,510,580,550,490,460,440,500,560,540,480,450,430,410],
+  'SHA-CTU': [580,540,490,420,380,460,520,480,400,360,390,450,510,480,420,380,350,410,480,450,390,360,340,400,460,440,380,350,330,310],
+};
+let currentRoute = 'BJS-SHA';
+function drawTrend(route) {
+  const canvas = document.getElementById('trendCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth, H = 200;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const data = trendData[route];
+  const min = Math.min(...data)-30, max = Math.max(...data)+30;
+  const padL=40, padR=20, padT=20, padB=40;
+  const cW = W-padL-padR, cH = H-padT-padB;
+  const xS = cW/(data.length-1);
+  const yS = d => padT + cH - ((d-min)/(max-min))*cH;
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  [0,0.25,0.5,0.75,1].forEach(r=>{
+    const y = padT + cH*r;
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+cW,y); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='11px Noto Sans SC';
+    ctx.fillText('¥'+Math.round(max-(max-min)*r), 0, y+4);
+  });
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0,padT,0,padT+cH);
+  grad.addColorStop(0,'rgba(0,229,195,0.15)');
+  grad.addColorStop(1,'rgba(0,229,195,0)');
+  ctx.beginPath();
+  data.forEach((d,i)=>{
+    const x=padL+i*xS, y=yS(d);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.lineTo(padL+cW, padT+cH); ctx.lineTo(padL, padT+cH); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  // Line
+  ctx.beginPath(); ctx.strokeStyle='#00e5c3'; ctx.lineWidth=2;
+  data.forEach((d,i)=>{
+    const x=padL+i*xS, y=yS(d);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // Min point
+  const minIdx = data.indexOf(Math.min(...data));
+  const mx=padL+minIdx*xS, my=yS(data[minIdx]);
+  ctx.beginPath(); ctx.arc(mx,my,5,0,Math.PI*2);
+  ctx.fillStyle='#2ed573'; ctx.fill();
+  ctx.fillStyle='#2ed573'; ctx.font='bold 11px Noto Sans SC';
+  ctx.fillText('最低 ¥'+data[minIdx],mx-20,my-10);
+  // X labels
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='11px Noto Sans SC';
+  [0,7,14,21,29].forEach(i=>{
+    ctx.fillText(`${i+1}日`, padL+i*xS-8, H-8);
+  });
+}
+function setRoute(el, route) {
+  document.querySelectorAll('.route-chip').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');
+  currentRoute = route;
+  drawTrend(route);
+}
+setTimeout(()=>drawTrend(currentRoute), 200);
+window.addEventListener('resize', ()=>drawTrend(currentRoute));
+
+// UI helpers
+function setTab(btn) {
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function swapCities() {
+  const f=document.getElementById('from'), t=document.getElementById('to');
+  [f.value,t.value]=[t.value,f.value];
+}
+function filterDeals(el, filter) {
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); renderDeals(filter);
+}
+function doSearch() {
+  const from=document.getElementById('from').value;
+  const to=document.getElementById('to').value;
+  if(!to.trim()){showToast('请输入目的城市');return;}
+  showToast(`正在搜索 ${from} → ${to} 的特价机票...`);
+}
+function setAlert() {
+  const email=document.querySelector('.alert-input').value;
+  if(!email){showToast('请输入邮箱地址');return;}
+  showToast('降价提醒已设置成功！');
+}
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  document.getElementById('toastText').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+// Animate stats
+function animateStat(el, target, prefix='', suffix='') {
+  let start=0, dur=1200, startTime=null;
+  const num = parseInt(target.replace(/[^0-9]/g,''));
+  function step(ts){
+    if(!startTime)startTime=ts;
+    const p=Math.min((ts-startTime)/dur,1);
+    el.textContent=prefix+Math.round(p*num).toLocaleString()+suffix;
+    if(p<1)requestAnimationFrame(step);
+    else el.textContent=prefix+target+suffix;
+  }
+  requestAnimationFrame(step);
+}
+setTimeout(()=>{
+  animateStat(document.getElementById('sn1'),'2,847');
+  animateStat(document.getElementById('sn2'),'289','¥');
+  animateStat(document.getElementById('sn3'),'18');
+  animateStat(document.getElementById('sn4'),'94','','%');
+},600);
+// Set default date
+document.getElementById('depDate').value = new Date(Date.now()+7*86400000).toISOString().split('T')[0];
+</script>
+</body>
+</html>
